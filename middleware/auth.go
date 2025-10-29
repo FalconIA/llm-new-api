@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+var channelIdRegex = regexp.MustCompile(`-\d+$`)
 
 func validUserInfo(username string, role int) bool {
 	// check username is empty
@@ -221,12 +224,15 @@ func TokenAuth() func(c *gin.Context) {
 			key = c.Request.Header.Get("mj-api-secret")
 			key = strings.TrimPrefix(key, "Bearer ")
 			key = strings.TrimPrefix(key, "sk-")
-			parts = strings.Split(key, "-")
-			key = parts[0]
 		} else {
 			key = strings.TrimPrefix(key, "sk-")
-			parts = strings.Split(key, "-")
+		}
+		if channelIdRegex.MatchString(key) {
+			lastDashIndex := strings.LastIndex(key, "-")
+			parts = []string{key[:lastDashIndex], key[lastDashIndex+1:]}
 			key = parts[0]
+		} else {
+			parts = append(parts, key)
 		}
 		token, err := model.ValidateUserToken(key)
 		if token != nil {
