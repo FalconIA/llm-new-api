@@ -7,3 +7,12 @@ Makefile
 docs
 .eslintcache
 .gocache
+.github
+.history
+logs
+web/dist
+web/.bunfig.toml
+web/node_modules
+docker/build.sh
+one-api*
+new-api*
