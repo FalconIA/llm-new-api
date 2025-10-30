@@ -139,7 +139,7 @@ const EditChannelModal = (props) => {
     model_mapping: '',
     status_code_mapping: '',
     models: [],
-    auto_ban: 1,
+    auto_ban: 0,
     test_model: '',
     groups: ['default'],
     priority: 0,
@@ -172,7 +172,7 @@ const EditChannelModal = (props) => {
   const [batch, setBatch] = useState(false);
   const [multiToSingle, setMultiToSingle] = useState(false);
   const [multiKeyMode, setMultiKeyMode] = useState('random');
-  const [autoBan, setAutoBan] = useState(true);
+  const [autoBan, setAutoBan] = useState(false);
   const [inputs, setInputs] = useState(originInputs);
   const [originModelOptions, setOriginModelOptions] = useState([]);
   const [modelOptions, setModelOptions] = useState([]);
@@ -437,9 +437,10 @@ const EditChannelModal = (props) => {
           localModels = getChannelModels(value);
           break;
       }
-      if (inputs.models.length === 0) {
-        setInputs((inputs) => ({ ...inputs, models: localModels }));
-      }
+      // 禁用自动填充模型列表
+      // if (inputs.models.length === 0) {
+      //   setInputs((inputs) => ({ ...inputs, models: localModels }));
+      // }
       setBasicModels(localModels);
 
       // 重置手动输入模式状态
@@ -794,7 +795,8 @@ const EditChannelModal = (props) => {
       }
       let localModels = getChannelModels(inputs.type);
       setBasicModels(localModels);
-      setInputs((inputs) => ({ ...inputs, models: localModels }));
+      // 禁用自动填充模型列表
+      // setInputs((inputs) => ({ ...inputs, models: localModels }));
     }
   }, [props.editingChannel.id]);
 

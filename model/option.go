@@ -141,6 +141,10 @@ func InitOptionMap() {
 	common.OptionMap["AutomaticDisableKeywords"] = operation_setting.AutomaticDisableKeywordsToString()
 	common.OptionMap["ExposeRatioEnabled"] = strconv.FormatBool(ratio_setting.IsExposeRatioEnabled())
 
+	common.OptionMap["HeaderNavModules"] = `{"home":true,"console":true,"pricing":{"enabled":true,"requireAuth":false},"docs":false,"about":false}`
+	common.OptionMap["SidebarModulesAdmin"] = `{"chat":{"enabled":true,"playground":true,"chat":false},"console":{"enabled":true,"detail":true,"token":true,"log":true,"midjourney":false,"task":true},"personal":{"enabled":false,"topup":true,"personal":true},"admin":{"enabled":true,"channel":true,"models":true,"redemption":false,"user":false,"setting":true}}`
+	common.OptionMap["quota_setting.enable_free_model_pre_consume"] = strconv.FormatBool(false)
+
 	// 自动添加所有注册的模型配置
 	modelConfigs := config.GlobalConfig.ExportAllConfigs()
 	for k, v := range modelConfigs {

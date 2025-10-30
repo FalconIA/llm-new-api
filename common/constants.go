@@ -11,7 +11,7 @@ import (
 
 var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
-var SystemName = "New API"
+var SystemName = "LLM New API"
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""
@@ -20,9 +20,9 @@ var TopUpLink = ""
 // var ChatLink2 = ""
 var QuotaPerUnit = 500 * 1000.0 // $0.002 / 1K tokens
 // 保留旧变量以兼容历史逻辑，实际展示由 general_setting.quota_display_type 控制
-var DisplayInCurrencyEnabled = true
+var DisplayInCurrencyEnabled = false
 var DisplayTokenStatEnabled = true
-var DrawingEnabled = true
+var DrawingEnabled = false
 var TaskEnabled = true
 var DataExportEnabled = true
 var DataExportInterval = 5         // unit: minute
@@ -41,14 +41,14 @@ var ItemsPerPage = 10
 var MaxRecentItems = 100
 
 var PasswordLoginEnabled = true
-var PasswordRegisterEnabled = true
+var PasswordRegisterEnabled = false
 var EmailVerificationEnabled = false
 var GitHubOAuthEnabled = false
 var LinuxDOOAuthEnabled = false
 var WeChatAuthEnabled = false
 var TelegramOAuthEnabled = false
 var TurnstileCheckEnabled = false
-var RegisterEnabled = true
+var RegisterEnabled = false
 
 var EmailDomainRestrictionEnabled = false // 是否启用邮箱域名限制
 var EmailAliasRestrictionEnabled = false  // 是否启用邮箱别名限制

@@ -43,13 +43,13 @@ const SetupWizard = () => {
     username: '',
     password: '',
     confirmPassword: '',
-    usageMode: 'external',
+    usageMode: 'self',
   });
 
-  // 确保默认选中“对外运营模式”，并同步到表单
+  // 确保默认选中“自用模式”，并同步到表单
   useEffect(() => {
     if (formRef.current) {
-      formRef.current.setValue('usageMode', 'external');
+      formRef.current.setValue('usageMode', 'self');
     }
   }, []);
 

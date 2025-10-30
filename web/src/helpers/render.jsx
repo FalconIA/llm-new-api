@@ -274,6 +274,7 @@ export function getChannelIcon(channelType) {
   switch (channelType) {
     case 1: // OpenAI
     case 3: // Azure OpenAI
+    case 8: // 自定义渠道
       return <OpenAI size={iconSize} />;
     case 2: // Midjourney Proxy
     case 5: // Midjourney Proxy Plus
@@ -342,7 +343,6 @@ export function getChannelIcon(channelType) {
       return <Jimeng.Color size={iconSize} />;
     case 54: // 豆包视频 Doubao Video
       return <Doubao.Color size={iconSize} />;
-    case 8: // 自定义渠道
     case 22: // 知识库：FastGPT
       return <FastGPT.Color size={iconSize} />;
     case 21: // 知识库：AI Proxy
