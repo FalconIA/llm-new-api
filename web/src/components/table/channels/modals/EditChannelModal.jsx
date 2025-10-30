@@ -60,6 +60,7 @@ import SecureVerificationModal from '../../../common/modals/SecureVerificationMo
 import ChannelKeyDisplay from '../../../common/ui/ChannelKeyDisplay';
 import { useSecureVerification } from '../../../../hooks/common/useSecureVerification';
 import { createApiCalls } from '../../../../services/secureVerification';
+import SignatureConfigPanel from './signature/SignatureConfigPanel';
 import {
   IconSave,
   IconClose,
@@ -163,6 +164,10 @@ const EditChannelModal = (props) => {
     allow_service_tier: false,
     disable_store: false, // false = 允许透传（默认开启）
     allow_safety_identifier: false,
+    // 签名配置默认值
+    signature_type: null,
+    signature_app_id: null,
+    signature_time_offset: null,
   };
   const [batch, setBatch] = useState(false);
   const [multiToSingle, setMultiToSingle] = useState(false);
@@ -529,6 +534,10 @@ const EditChannelModal = (props) => {
           data.disable_store = parsedSettings.disable_store || false;
           data.allow_safety_identifier =
             parsedSettings.allow_safety_identifier || false;
+          // 读取签名配置
+          data.signature_type = parsedSettings.signature_type || null;
+          data.signature_app_id = parsedSettings.signature_app_id || null;
+          data.signature_time_offset = parsedSettings.signature_time_offset ?? null;
         } catch (error) {
           console.error('解析其他设置失败:', error);
           data.azure_responses_version = '';
@@ -539,6 +548,9 @@ const EditChannelModal = (props) => {
           data.allow_service_tier = false;
           data.disable_store = false;
           data.allow_safety_identifier = false;
+          data.signature_type = null;
+          data.signature_app_id = null;
+          data.signature_time_offset = null;
         }
       } else {
         // 兼容历史数据：老渠道没有 settings 时，默认按 json 展示
@@ -548,6 +560,9 @@ const EditChannelModal = (props) => {
         data.allow_service_tier = false;
         data.disable_store = false;
         data.allow_safety_identifier = false;
+        data.signature_type = null;
+        data.signature_app_id = null;
+        data.signature_time_offset = null;
       }
 
       if (
@@ -1021,6 +1036,27 @@ const EditChannelModal = (props) => {
       }
     }
 
+    // type === 8 (自定义渠道): 保存签名配置到 settings
+    if (localInputs.type === 8) {
+      if (localInputs.signature_type !== null && localInputs.signature_type !== '') {
+        settings.signature_type = localInputs.signature_type;
+        
+        // 只有当选择了签名算法时，才保存其他签名配置
+        if (localInputs.signature_app_id !== null && localInputs.signature_app_id !== '') {
+          settings.signature_app_id = localInputs.signature_app_id;
+        }
+        // time_offset 为 0 是默认值，不需要保存
+        if (localInputs.signature_time_offset !== null && localInputs.signature_time_offset !== undefined && localInputs.signature_time_offset !== 0) {
+          settings.signature_time_offset = localInputs.signature_time_offset;
+        }
+      } else {
+        // 如果签名算法为空（选择了"无"），则删除所有签名相关字段
+        delete settings.signature_type;
+        delete settings.signature_app_id;
+        delete settings.signature_time_offset;
+      }
+    }
+
     localInputs.settings = JSON.stringify(settings);
 
     // 清理不需要发送到后端的字段
@@ -1039,6 +1075,10 @@ const EditChannelModal = (props) => {
     delete localInputs.allow_service_tier;
     delete localInputs.disable_store;
     delete localInputs.allow_safety_identifier;
+    // 清理签名配置的临时字段
+    delete localInputs.signature_type;
+    delete localInputs.signature_app_id;
+    delete localInputs.signature_time_offset;
 
     let res;
     localInputs.auto_ban = localInputs.auto_ban ? 1 : 0;
@@ -2077,6 +2117,14 @@ const EditChannelModal = (props) => {
                               showClear
                             />
                           </div>
+                          <SignatureConfigPanel
+                            channelOtherSettings={{
+                              signature_type: inputs.signature_type,
+                              signature_app_id: inputs.signature_app_id,
+                              signature_time_offset: inputs.signature_time_offset,
+                            }}
+                            handleChannelOtherSettingsChange={handleChannelOtherSettingsChange}
+                          />
                         </>
                       )}
 

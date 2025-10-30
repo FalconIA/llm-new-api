@@ -2062,6 +2062,22 @@
     "默认区域，如: us-central1": "默认区域，如: us-central1",
     "默认折叠侧边栏": "默认折叠侧边栏",
     "默认测试模型": "默认测试模型",
-    "默认补全倍率": "默认补全倍率"
+    "默认补全倍率": "默认补全倍率",
+    "signature.title": "签名配置",
+    "signature.fields.signature_type": "签名算法",
+    "signature.fields.signature_type_placeholder": "请选择签名算法",
+    "signature.fields.signature_app_id": "签名应用ID",
+    "signature.fields.signature_app_id_placeholder": "请输入签名应用ID",
+    "signature.fields.signature_time_offset": "时间偏移量",
+    "signature.fields.signature_time_offset_placeholder": "请输入时间偏移量（秒）",
+    "signature.fields.signature_time_offset_hint": "用于调整签名时间戳，范围：-3600 到 3600 秒。正值表示时间提前，负值表示时间延后",
+    "signature.fields.seconds": "秒",
+    "signature.algorithms.none": "无",
+    "signature.algorithms.none_desc": "不使用签名",
+    "signature.algorithms.cmc_sh": "上海移动签名算法",
+    "signature.algorithms.cmc_sh_desc": "上海移动签名算法（AES/ECB/PKCS5Padding）",
+    "signature.algorithms.cmc_sh_hint": "上海移动签名算法使用 AES/ECB/PKCS5Padding 加密方式，生成的签名将作为 Bearer Token 添加到请求头中",
+    "signature.validation.app_id_required": "签名应用ID为必填项",
+    "signature.no_algorithm_selected": "未选择签名算法，默认不对请求进行签名处理"
   }
 }

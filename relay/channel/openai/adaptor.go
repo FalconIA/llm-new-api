@@ -18,7 +18,9 @@ import (
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/ai360"
 	"github.com/QuantumNous/new-api/relay/channel/lingyiwanwu"
+
 	//"github.com/QuantumNous/new-api/relay/channel/minimax"
+	"github.com/QuantumNous/new-api/relay/channel/openai/signature"
 	"github.com/QuantumNous/new-api/relay/channel/openrouter"
 	"github.com/QuantumNous/new-api/relay/channel/xinference"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
@@ -201,7 +203,49 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, header *http.Header, info *
 			header.Set("Authorization", "Bearer "+info.ApiKey)
 		}
 	} else {
-		header.Set("Authorization", "Bearer "+info.ApiKey)
+		// 处理签名逻辑（仅针对自定义渠道）
+		apiKey := info.ApiKey
+		if info.ChannelType == constant.ChannelTypeCustom && info.ChannelOtherSettings.SignatureType != nil && *info.ChannelOtherSettings.SignatureType != "" {
+			signatureType := *info.ChannelOtherSettings.SignatureType
+
+			// 构建签名配置
+			signConfig := signature.SignatureConfig{}
+
+			// 设置 AppID（解引用指针）
+			if info.ChannelOtherSettings.SignatureAppId != nil {
+				signConfig.AppID = *info.ChannelOtherSettings.SignatureAppId
+			}
+
+			// 设置 TimeOffset（解引用指针，默认0）
+			if info.ChannelOtherSettings.SignatureTimeOffset != nil {
+				signConfig.TimeOffset = *info.ChannelOtherSettings.SignatureTimeOffset
+			}
+
+			// 使用签名器生成新的 token（内部会自动验证配置）
+			signedToken, err := signature.SignWithCache(
+				signatureType,
+				info.ApiKey,
+				signConfig,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to generate signature: %w", err)
+			}
+
+			// 将签名后的 token 作为新的 apiKey
+			apiKey = signedToken
+
+			if common.DebugEnabled {
+				appId := ""
+				if info.ChannelOtherSettings.SignatureAppId != nil {
+					appId = *info.ChannelOtherSettings.SignatureAppId
+				}
+				common.SysLog(fmt.Sprintf("Custom channel signature enabled, type: %s, app_id: %s",
+					signatureType,
+					appId))
+			}
+		}
+
+		header.Set("Authorization", "Bearer "+apiKey)
 	}
 	if info.ChannelType == constant.ChannelTypeOpenRouter {
 		header.Set("HTTP-Referer", "https://www.newapi.ai")

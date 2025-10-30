@@ -1,5 +1,6 @@
 .idea
 .vscode
+.history
 upload
 *.exe
 *.db
@@ -7,6 +8,7 @@ build
 *.db-journal
 logs
 web/dist
+web/.bunfig.toml
 .env
 one-api
 new-api

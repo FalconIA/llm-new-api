@@ -2071,6 +2071,22 @@
     "默认区域，如: us-central1": "Default region, e.g.: us-central1",
     "默认折叠侧边栏": "Default collapse sidebar",
     "默认测试模型": "Default Test Model",
-    "默认补全倍率": "Default completion ratio"
+    "默认补全倍率": "Default completion ratio",
+    "signature.title": "Signature Configuration",
+    "signature.fields.signature_type": "Signature Algorithm",
+    "signature.fields.signature_type_placeholder": "Select signature algorithm",
+    "signature.fields.signature_app_id": "Signature App ID",
+    "signature.fields.signature_app_id_placeholder": "Enter signature application ID",
+    "signature.fields.signature_time_offset": "Time Offset",
+    "signature.fields.signature_time_offset_placeholder": "Enter time offset (seconds)",
+    "signature.fields.signature_time_offset_hint": "Used to adjust the signature timestamp, range: -3600 to 3600 seconds. Positive value means time advanced, negative value means time delayed",
+    "signature.fields.seconds": "seconds",
+    "signature.algorithms.none": "None",
+    "signature.algorithms.none_desc": "No signature algorithm",
+    "signature.algorithms.cmc_sh": "CMC Shanghai signature algorithm",
+    "signature.algorithms.cmc_sh_desc": "CMC Shanghai signature algorithm (AES/ECB/PKCS5Padding)",
+    "signature.algorithms.cmc_sh_hint": "CMC Shanghai signature algorithm uses AES/ECB/PKCS5Padding encryption, the generated signature will be added to the request header as Bearer Token",
+    "signature.validation.app_id_required": "Signature App ID is required",
+    "signature.no_algorithm_selected": "No signature algorithm selected, requests will not be signed by default"
   }
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/relay/channel/openai/signature"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/samber/lo"
@@ -834,6 +835,42 @@ func (channel *Channel) ValidateSettings() error {
 			return err
 		}
 	}
+
+	// 验证签名配置（仅针对自定义渠道）
+	if channel.Type == constant.ChannelTypeCustom {
+		otherSettings := channel.GetOtherSettings()
+		if otherSettings.SignatureType != nil && *otherSettings.SignatureType != "" {
+			signatureType := *otherSettings.SignatureType
+
+			// 获取用于验证的 Key
+			// 如果当前 channel.Key 为空（修改渠道时前端未传密钥），则从数据库读取
+			keyForValidation := channel.Key
+			if keyForValidation == "" && channel.Id != 0 {
+				// 尝试从数据库读取原有的 Key
+				originChannel, err := GetChannelById(channel.Id, true)
+				if err == nil && originChannel != nil {
+					keyForValidation = originChannel.Key
+				}
+			}
+
+			// 构建签名配置
+			signConfig := signature.SignatureConfig{}
+
+			if otherSettings.SignatureAppId != nil {
+				signConfig.AppID = *otherSettings.SignatureAppId
+			}
+
+			if otherSettings.SignatureTimeOffset != nil {
+				signConfig.TimeOffset = *otherSettings.SignatureTimeOffset
+			}
+
+			// 调用签名模块验证配置
+			if err := signature.ValidateSignatureConfig(signatureType, keyForValidation, signConfig); err != nil {
+				return fmt.Errorf("签名配置验证失败: %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 
