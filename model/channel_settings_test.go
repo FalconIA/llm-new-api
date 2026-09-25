@@ -195,3 +195,64 @@ func TestInferencePresetSettingsAndDatabaseRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+func TestCustomSignatureSettingsDatabaseMatrix(t *testing.T) {
+	for _, dialect := range []string{"sqlite", "mysql", "postgres"} {
+		t.Run(dialect, func(t *testing.T) {
+			var driver gorm.Dialector
+			var dbType common.DatabaseType
+			switch dialect {
+			case "sqlite":
+				driver = sqlite.Open(filepath.Join(t.TempDir(), "custom-signature.db"))
+				dbType = common.DatabaseTypeSQLite
+			case "mysql":
+				dsn := os.Getenv("TEST_MYSQL_DSN")
+				if dsn == "" {
+					t.Skip("TEST_MYSQL_DSN is not configured")
+				}
+				driver = mysql.Open(dsn)
+				dbType = common.DatabaseTypeMySQL
+			case "postgres":
+				dsn := os.Getenv("TEST_POSTGRES_DSN")
+				if dsn == "" {
+					t.Skip("TEST_POSTGRES_DSN is not configured")
+				}
+				driver = postgres.New(postgres.Config{DSN: dsn, PreferSimpleProtocol: true})
+				dbType = common.DatabaseTypePostgreSQL
+			}
+			db, err := gorm.Open(driver, &gorm.Config{})
+			require.NoError(t, err)
+			sqlDB, err := db.DB()
+			require.NoError(t, err)
+			t.Cleanup(func() { assert.NoError(t, sqlDB.Close()) })
+			previousDB := DB
+			previousType := common.MainDatabaseType()
+			DB = db
+			common.SetMainDatabaseType(dbType)
+			initCol()
+			t.Cleanup(func() {
+				DB = previousDB
+				common.SetMainDatabaseType(previousType)
+				initCol()
+			})
+			require.NoError(t, db.AutoMigrate(&Channel{}))
+			t.Cleanup(func() { assert.NoError(t, db.Migrator().DropTable(&Channel{})) })
+
+			stored := &Channel{Type: constant.ChannelTypeCustom, Name: "signed-upstream", Key: "1234567890abcdef"}
+			stored.SetOtherSettings(dto.ChannelOtherSettings{SignatureType: "cmc_sh", SignatureAppID: "app_1"})
+			require.NoError(t, stored.ValidateSettings())
+			require.NoError(t, db.Create(stored).Error)
+
+			// The edit endpoint does not resend a saved secret key.
+			updated := &Channel{Id: stored.Id, Type: constant.ChannelTypeCustom}
+			updated.SetOtherSettings(dto.ChannelOtherSettings{SignatureType: "cmc_sh", SignatureAppID: "app_2", SignatureTimeOffset: 5})
+			require.NoError(t, updated.ValidateSettings())
+			require.NoError(t, db.Model(&Channel{}).Where("id = ?", stored.Id).Update("settings", updated.OtherSettings).Error)
+			loaded, err := GetChannelById(stored.Id, true)
+			require.NoError(t, err)
+			assert.Equal(t, stored.Key, loaded.Key)
+			assert.Equal(t, "app_2", loaded.GetOtherSettings().SignatureAppID)
+			assert.EqualValues(t, 5, loaded.GetOtherSettings().SignatureTimeOffset)
+		})
+	}
+}
