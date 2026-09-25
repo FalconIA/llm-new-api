@@ -1267,7 +1267,7 @@ test('quick options show only applicable shortcuts when the provider changes', a
   expect(quick.getAllByRole('switch')).toHaveLength(1)
   expect(
     quick.getByRole('switch', { name: 'Auto-disable channel' })
-  ).toBeChecked()
+  ).not.toBeChecked()
 })
 
 test('editing opens the shared configuration and omits an unchanged key on update', async () => {
@@ -1443,7 +1443,7 @@ test('a failed detail request blocks updating until retry loads the saved channe
 })
 
 test('restoring routing defaults clears the configured indicator for both the block and category', async () => {
-  editingChannel = { ...editingChannel, auto_ban: 0 }
+  editingChannel = { ...editingChannel, auto_ban: 1 }
   const user = userEvent.setup()
   render(<ConfigurationHarness currentRow={editingChannel} />)
   await screen.findByDisplayValue('Existing channel')
@@ -1579,6 +1579,40 @@ test('configuration from fields unsupported by the selected provider stays unmar
       name: 'Use OpenAI-compatible Ollama chat API',
     })
   ).not.toBeInTheDocument()
+})
+
+test('a custom channel loads and updates its request signature fields', async () => {
+  editingChannel = {
+    ...editingChannel,
+    type: 8,
+    settings:
+      '{"signature_type":"cmc_sh","signature_app_id":"app_1","signature_time_offset":2}',
+  }
+  const put = vi
+    .spyOn(api, 'put')
+    .mockResolvedValue({ data: { success: true } })
+  const user = userEvent.setup()
+  render(<ConfigurationHarness currentRow={editingChannel} />)
+  await screen.findByDisplayValue('Existing channel')
+  expect(
+    screen.getByRole('combobox', { name: 'Request signature' })
+  ).toBeVisible()
+  expect(screen.getByRole('textbox', { name: /^Application ID/ })).toHaveValue(
+    'app_1'
+  )
+  const offset = screen.getByRole('spinbutton', {
+    name: 'Time offset (seconds)',
+  })
+  expect(offset).toHaveValue(2)
+  fireEvent.change(offset, { target: { value: '5' } })
+  await user.click(screen.getByRole('button', { name: 'Update Channel' }))
+  await waitFor(() => expect(put).toHaveBeenCalled())
+  const payload = put.mock.calls[0]?.[1] as { settings: string }
+  expect(JSON.parse(payload.settings)).toMatchObject({
+    signature_type: 'cmc_sh',
+    signature_app_id: 'app_1',
+    signature_time_offset: 5,
+  })
 })
 
 test('an Ollama channel marks a saved OpenAI-compatible chat setting in Request & Response and saves the toggled value', async () => {
@@ -2247,7 +2281,7 @@ test('without mappings the model list offers to set up redirects and the routing
   render(<ConfigurationHarness currentRow={editingChannel} />)
   await screen.findByDisplayValue('Existing channel')
   const tab = screen.getByRole('tab', { name: /Routing & Mapping/ })
-  expect(tab).toHaveAccessibleName('Routing & Mapping')
+  expect(tab).toHaveAccessibleName('Routing & MappingConfigured')
   expect(screen.queryByText(/model\(s\) redirected/)).not.toBeInTheDocument()
   await user.click(
     screen.getByRole('button', { name: 'Set up model redirects' })

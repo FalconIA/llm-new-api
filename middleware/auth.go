@@ -300,10 +300,14 @@ func TokenAuthReadOnly() func(c *gin.Context) {
 			key = strings.TrimSpace(key[7:])
 		}
 		key = strings.TrimPrefix(key, "sk-")
-		parts := strings.Split(key, "-")
-		key = parts[0]
-
+		// A key may itself contain hyphens. Try the full key before treating
+		// a trailing numeric segment as an administrator channel pin.
 		token, err := model.GetTokenByKey(key, false)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if baseKey, _, ok := splitChannelPin(key); ok {
+				token, err = model.GetTokenByKey(baseKey, false)
+			}
+		}
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				c.JSON(http.StatusUnauthorized, gin.H{
@@ -385,7 +389,6 @@ func TokenAuth() func(c *gin.Context) {
 			}
 		}
 		key := c.Request.Header.Get("Authorization")
-		parts := make([]string, 0)
 		if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 			key = strings.TrimSpace(key[7:])
 		}
@@ -394,15 +397,18 @@ func TokenAuth() func(c *gin.Context) {
 			if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 				key = strings.TrimSpace(key[7:])
 			}
-			key = strings.TrimPrefix(key, "sk-")
-			parts = strings.Split(key, "-")
-			key = parts[0]
-		} else {
-			key = strings.TrimPrefix(key, "sk-")
-			parts = strings.Split(key, "-")
-			key = parts[0]
 		}
+		key = strings.TrimPrefix(key, "sk-")
+		// Preserve the complete key if it exists, even when it ends in digits.
+		// Only a missing key may be interpreted as a channel pin.
 		token, err := model.ValidateUserToken(key)
+		parts := []string{key}
+		if token == nil && errors.Is(err, model.ErrTokenInvalid) {
+			if baseKey, pin, ok := splitChannelPin(key); ok {
+				token, err = model.ValidateUserToken(baseKey)
+				parts = []string{baseKey, pin}
+			}
+		}
 		if token != nil {
 			id := c.GetInt("id")
 			if id == 0 {
@@ -501,6 +507,21 @@ func apiKeyFromWebSocketSubprotocol(protocols string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// splitChannelPin only recognizes the established numeric channel suffix.
+// Authentication always checks the complete key first.
+func splitChannelPin(key string) (string, string, bool) {
+	index := strings.LastIndexByte(key, '-')
+	if index <= 0 || index == len(key)-1 {
+		return "", "", false
+	}
+	for _, digit := range key[index+1:] {
+		if digit < '0' || digit > '9' {
+			return "", "", false
+		}
+	}
+	return key[:index], key[index+1:], true
 }
 
 func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) error {

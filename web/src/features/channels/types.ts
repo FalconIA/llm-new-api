@@ -95,6 +95,9 @@ export interface ChannelSettings {
 
 export interface ChannelOtherSettings {
   azure_responses_version?: string
+  signature_type?: 'cmc_sh'
+  signature_app_id?: string
+  signature_time_offset?: number
   vertex_key_type?: 'json' | 'api_key'
   openrouter_enterprise?: boolean
   aws_key_type?: 'ak_sk' | 'api_key'

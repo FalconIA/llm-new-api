@@ -4420,6 +4420,88 @@ export function ChannelMutateDrawer({
                 }}
               />
 
+              {currentType === 8 && (
+                <div className='border-border/60 flex flex-col gap-4 border-y py-4'>
+                  <FormField
+                    control={form.control}
+                    name='signature_type'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Request signature')}</FormLabel>
+                        <Select
+                          disabled={sensitiveLocked}
+                          value={field.value || 'none'}
+                          onValueChange={(value) =>
+                            field.onChange(value === 'none' ? '' : value)
+                          }
+                          items={[
+                            { value: 'none', label: t('None') },
+                            { value: 'cmc_sh', label: 'cmc_sh' },
+                          ]}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value='none'>{t('None')}</SelectItem>
+                              <SelectItem value='cmc_sh'>cmc_sh</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {t('Sign requests for the custom upstream')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {form.watch('signature_type') === 'cmc_sh' && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name='signature_app_id'
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel required>
+                              {t('Application ID')}
+                            </FormLabel>
+                            <FormControl>
+                              <Input {...field} disabled={sensitiveLocked} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name='signature_time_offset'
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('Time offset (seconds)')}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type='number'
+                                min={-3600}
+                                max={3600}
+                                value={field.value ?? 0}
+                                onChange={(event) =>
+                                  field.onChange(Number(event.target.value))
+                                }
+                                disabled={sensitiveLocked}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+
               {currentType === 57 && (
                 <div className='border-border/60 flex flex-col gap-3 border-y py-4'>
                   <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>

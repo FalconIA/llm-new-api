@@ -16,7 +16,7 @@ type QuotaSetting struct {
 
 // 默认配置
 var quotaSetting = QuotaSetting{
-	EnableFreeModelPreConsume: true,
+	EnableFreeModelPreConsume: false,
 	TrustQuotaUSD:             10,
 	PreConsumeMultiplier:      1,
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -333,4 +334,85 @@ func TestApplyWebSocketSubprotocolAuthorizationReadsRepeatedHeaders(t *testing.T
 
 	assert.True(t, applyWebSocketSubprotocolAuthorization(header))
 	assert.Equal(t, "Bearer sk-later-field", header.Get("Authorization"))
+}
+
+func TestSplitChannelPinPreservesHyphenatedKey(t *testing.T) {
+	tests := []struct {
+		key, base, pin string
+		ok             bool
+	}{
+		{key: "prefix-middle-42", base: "prefix-middle", pin: "42", ok: true},
+		{key: "prefix-42-7", base: "prefix-42", pin: "7", ok: true},
+		{key: "prefix-middle", ok: false},
+		{key: "prefix-", ok: false},
+		{key: "-42", ok: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			base, pin, ok := splitChannelPin(tt.key)
+			assert.Equal(t, tt.ok, ok)
+			assert.Equal(t, tt.base, base)
+			assert.Equal(t, tt.pin, pin)
+		})
+	}
+}
+
+func TestTokenAuthPreservesFullHyphenatedKeyBeforeChannelPin(t *testing.T) {
+	previousPath := common.SQLitePath
+	previousMaster := common.IsMasterNode
+	previousDB := model.DB
+	previousLogDB := model.LOG_DB
+	previousType := common.MainDatabaseType()
+	t.Cleanup(func() {
+		common.SQLitePath = previousPath
+		common.IsMasterNode = previousMaster
+		model.DB = previousDB
+		model.LOG_DB = previousLogDB
+		common.SetMainDatabaseType(previousType)
+	})
+	t.Setenv("SQL_DSN", "")
+	common.SQLitePath = filepath.Join(t.TempDir(), "token-auth.db")
+	common.IsMasterNode = false
+	require.NoError(t, model.InitDB())
+	setupDB, err := model.DB.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, setupDB.Close()) })
+	setupDashboardAuthMiddlewareTest(t)
+	require.NoError(t, model.DB.AutoMigrate(&model.Token{}))
+	user := createMiddlewarePATUser(t, "hyphenated-relay-token-user", "unrelated-pat")
+	base := &model.Token{UserId: user.Id, Key: "part-middle", Status: common.TokenStatusEnabled, UnlimitedQuota: true, ExpiredTime: -1}
+	full := &model.Token{UserId: user.Id, Key: "part-middle-42", Status: common.TokenStatusEnabled, UnlimitedQuota: true, ExpiredTime: -1}
+	require.NoError(t, model.DB.Create(base).Error)
+	require.NoError(t, model.DB.Create(full).Error)
+
+	router := gin.New()
+	router.GET("/relay", TokenAuth(), func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"token_id": c.GetInt("token_id")})
+	})
+
+	request := httptest.NewRequest(http.MethodGet, "/relay", nil)
+	request.Header.Set("Authorization", "Bearer sk-"+full.Key)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	require.Equal(t, http.StatusOK, response.Code)
+	var body struct {
+		TokenID int `json:"token_id"`
+	}
+	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &body))
+	assert.Equal(t, full.Id, body.TokenID)
+
+	// An existing but disabled full key must not fall back to the active base key.
+	require.NoError(t, model.DB.Model(full).Update("status", common.TokenStatusDisabled).Error)
+	request = httptest.NewRequest(http.MethodGet, "/relay", nil)
+	request.Header.Set("Authorization", "Bearer sk-"+full.Key)
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusUnauthorized, response.Code)
+
+	// A nonexistent suffix still uses the legacy pin path, restricted to admins.
+	request = httptest.NewRequest(http.MethodGet, "/relay", nil)
+	request.Header.Set("Authorization", "Bearer sk-"+base.Key+"-7")
+	response = httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusForbidden, response.Code)
 }

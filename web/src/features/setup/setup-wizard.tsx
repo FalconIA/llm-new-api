@@ -73,7 +73,7 @@ const DEFAULT_FORM_VALUES: SetupFormValues = {
   username: '',
   password: '',
   confirmPassword: '',
-  usageMode: 'external',
+  usageMode: 'self',
 }
 
 export function SetupWizard() {

@@ -277,6 +277,9 @@ export const channelFormSchema = z
     vertex_key_type: z.enum(['json', 'api_key']).optional(), // Vertex AI specific
     aws_key_type: z.enum(['ak_sk', 'api_key']).optional(), // AWS specific
     azure_responses_version: z.string().optional(), // Azure specific
+    signature_type: z.enum(['', 'cmc_sh']).optional(), // Custom channel only
+    signature_app_id: z.string().optional(),
+    signature_time_offset: z.number().int().min(-3600).max(3600).optional(),
     // Field passthrough controls (stored in settings JSON)
     allow_service_tier: z.boolean().optional(), // OpenAI/Anthropic
     disable_store: z.boolean().optional(), // OpenAI only
@@ -317,6 +320,14 @@ export const channelFormSchema = z
       !data.task_plugin_key?.trim()
     ) {
       addRequiredIssue(ctx, 'task_plugin_key', 'Task plugin is required')
+    }
+
+    if (
+      data.type === 8 &&
+      data.signature_type === 'cmc_sh' &&
+      !data.signature_app_id?.trim()
+    ) {
+      addRequiredIssue(ctx, 'signature_app_id', 'Application ID is required')
     }
 
     if (data.type === CHANNEL_TYPE_ADVANCED_CUSTOM) {
@@ -439,7 +450,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   priority: 0,
   weight: 0,
   test_model: '',
-  auto_ban: 1,
+  auto_ban: 0,
   status: CHANNEL_STATUS.ENABLED,
   status_code_mapping: '',
   tag: '',
@@ -468,6 +479,9 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   vertex_key_type: 'json',
   aws_key_type: 'ak_sk',
   azure_responses_version: '',
+  signature_type: '',
+  signature_app_id: '',
+  signature_time_offset: 0,
   // Field passthrough controls
   allow_service_tier: false,
   disable_store: false,
@@ -539,6 +553,9 @@ export function transformChannelToFormDefaults(
   // Parse type-specific settings from settings field
   let vertexKeyType: 'json' | 'api_key' = 'json'
   let azureResponsesVersion = ''
+  let signatureType: '' | 'cmc_sh' = ''
+  let signatureAppID = ''
+  let signatureTimeOffset = 0
   let isEnterpriseAccount = false
   let awsKeyType: 'ak_sk' | 'api_key' = 'ak_sk'
   let allowServiceTier = false
@@ -560,6 +577,9 @@ export function transformChannelToFormDefaults(
       const parsed = JSON.parse(channel.settings)
       vertexKeyType = parsed.vertex_key_type || 'json'
       azureResponsesVersion = parsed.azure_responses_version || ''
+      signatureType = parsed.signature_type === 'cmc_sh' ? 'cmc_sh' : ''
+      signatureAppID = parsed.signature_app_id || ''
+      signatureTimeOffset = Number(parsed.signature_time_offset) || 0
       isEnterpriseAccount = parsed.openrouter_enterprise === true
       awsKeyType = parsed.aws_key_type || 'ak_sk'
       allowServiceTier = parsed.allow_service_tier === true
@@ -621,6 +641,9 @@ export function transformChannelToFormDefaults(
     is_enterprise_account: isEnterpriseAccount,
     vertex_key_type: vertexKeyType,
     azure_responses_version: azureResponsesVersion,
+    signature_type: signatureType,
+    signature_app_id: signatureAppID,
+    signature_time_offset: signatureTimeOffset,
     aws_key_type: awsKeyType,
     allow_service_tier: allowServiceTier,
     disable_store: disableStore,
@@ -709,6 +732,16 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     settingsObj.azure_responses_version = formData.azure_responses_version
   } else if ('azure_responses_version' in settingsObj) {
     delete settingsObj.azure_responses_version
+  }
+
+  if (formData.type === 8 && formData.signature_type === 'cmc_sh') {
+    settingsObj.signature_type = 'cmc_sh'
+    settingsObj.signature_app_id = formData.signature_app_id?.trim() || ''
+    settingsObj.signature_time_offset = formData.signature_time_offset || 0
+  } else {
+    delete settingsObj.signature_type
+    delete settingsObj.signature_app_id
+    delete settingsObj.signature_time_offset
   }
 
   // Add enterprise account setting for OpenRouter (type 20)

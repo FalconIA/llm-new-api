@@ -12,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/relay/channel/openai/signature"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 
@@ -1011,6 +1012,22 @@ func (channel *Channel) ValidateSettings() error {
 	}
 	if err := channelOtherSettings.ValidateToolLossPolicy(); err != nil {
 		return err
+	}
+	if channelOtherSettings.SignatureType != "" {
+		if channel.Type != constant.ChannelTypeCustom || channelOtherSettings.SignatureType != signature.CMCShanghai {
+			return fmt.Errorf("signature_type is only supported for cmc_sh custom channels")
+		}
+		key := channel.Key
+		if key == "" && channel.Id != 0 {
+			existing, err := GetChannelById(channel.Id, true)
+			if err != nil {
+				return fmt.Errorf("failed to load existing channel key: %w", err)
+			}
+			key = existing.Key
+		}
+		if err := signature.Validate(key, channelOtherSettings.SignatureAppID, channelOtherSettings.SignatureTimeOffset); err != nil {
+			return fmt.Errorf("invalid signature settings: %w", err)
+		}
 	}
 	if preset := common.GetAdvancedCustomPreset(channel.Type); preset != nil {
 		channelOtherSettings.AdvancedCustom = preset

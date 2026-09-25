@@ -19,6 +19,7 @@ import (
 	"github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/ai360"
 	"github.com/QuantumNous/new-api/relay/channel/lingyiwanwu"
+	"github.com/QuantumNous/new-api/relay/channel/openai/signature"
 	"github.com/QuantumNous/new-api/relay/channel/openrouter"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 
@@ -206,6 +207,17 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, header *http.Header, info *
 			}
 		}
 	}
+	apiKey := info.ApiKey
+	if info.ChannelType == constant.ChannelTypeCustom && info.ChannelOtherSettings.SignatureType != "" {
+		if info.ChannelOtherSettings.SignatureType != signature.CMCShanghai {
+			return fmt.Errorf("unsupported custom channel signature type")
+		}
+		var err error
+		apiKey, err = signature.Sign(info.ApiKey, info.ChannelOtherSettings.SignatureAppID, info.ChannelOtherSettings.SignatureTimeOffset)
+		if err != nil {
+			return fmt.Errorf("failed to sign custom channel request: %w", err)
+		}
+	}
 	if info.RelayMode == relayconstant.RelayModeRealtime {
 		// OpenAI 已下线 Realtime Beta API,GA 模型收到 beta 标识会以 beta_api_shape_disabled 拒绝;
 		// 仅对遗留 preview 模型保留 beta 标识
@@ -214,7 +226,7 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, header *http.Header, info *
 		if swp != "" {
 			items := []string{
 				"realtime",
-				"openai-insecure-api-key." + info.ApiKey,
+				"openai-insecure-api-key." + apiKey,
 			}
 			if legacyRealtimeBeta {
 				items = append(items, "openai-beta.realtime-v1")
@@ -228,12 +240,12 @@ func (a *Adaptor) SetupRequestHeader(c *gin.Context, header *http.Header, info *
 				header.Set("openai-beta", "realtime=v1")
 			}
 			if !hasAuthOverride {
-				header.Set("Authorization", "Bearer "+info.ApiKey)
+				header.Set("Authorization", "Bearer "+apiKey)
 			}
 		}
 	} else {
 		if !hasAuthOverride {
-			header.Set("Authorization", "Bearer "+info.ApiKey)
+			header.Set("Authorization", "Bearer "+apiKey)
 		}
 	}
 	if info.ChannelType == constant.ChannelTypeOpenRouter {

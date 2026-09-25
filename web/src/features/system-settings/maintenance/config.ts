@@ -46,18 +46,18 @@ export const HEADER_NAV_DEFAULT: HeaderNavModulesConfig = {
     requireAuth: false,
   },
   rankings: {
-    enabled: true,
+    enabled: false,
     requireAuth: false,
   },
-  docs: true,
-  about: true,
+  docs: false,
+  about: false,
 }
 
 export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
   chat: {
     enabled: true,
     playground: true,
-    chat: true,
+    chat: false,
   },
   console: {
     enabled: true,
@@ -65,12 +65,12 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     token: true,
     log: true,
     audit: true,
-    midjourney: true,
+    midjourney: false,
     task: true,
   },
   personal: {
     enabled: true,
-    topup: true,
+    topup: false,
     personal: true,
     security: true,
   },
@@ -78,8 +78,8 @@ export const SIDEBAR_MODULES_DEFAULT: SidebarModulesAdminConfig = {
     enabled: true,
     channel: true,
     models: true,
-    redemption: true,
-    user: true,
+    redemption: false,
+    user: false,
     setting: true,
     subscription: true,
   },

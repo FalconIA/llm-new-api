@@ -1,5 +1,8 @@
 FROM oven/bun:1.4.0@sha256:5ff609364c049b54eb0ff560ec96319729a972078ef2c755d758f0c6ef89c2d6 AS builder
 
+ARG BUN_CONFIG_REGISTRY
+ENV BUN_CONFIG_REGISTRY=${BUN_CONFIG_REGISTRY}
+
 WORKDIR /build/web
 COPY web/package.json web/bun.lock ./
 RUN bun install --frozen-lockfile
@@ -12,6 +15,8 @@ ENV GO111MODULE=on CGO_ENABLED=0 GOWORK=off
 
 ARG TARGETOS
 ARG TARGETARCH
+ARG GOPROXY
+ENV GOPROXY=${GOPROXY}
 ENV GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64}
 ENV GOEXPERIMENT=greenteagc
 
@@ -34,8 +39,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
+ENV TZ=Asia/Shanghai
+
 COPY --from=builder2 /build/new-api /
 COPY LICENSE NOTICE THIRD-PARTY-LICENSES.md /licenses/
 EXPOSE 3000
 WORKDIR /data
+VOLUME /data
 ENTRYPOINT ["/new-api"]

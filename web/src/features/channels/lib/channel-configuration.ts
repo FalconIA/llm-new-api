@@ -143,7 +143,7 @@ export function getChannelConfigurationState(
       values.priority ||
       values.weight ||
       values.test_model?.trim() ||
-      (values.auto_ban ?? 1) !== 1
+      (values.auto_ban ?? 0) !== 0
     ),
     overrideRules:
       hasConfiguredJson(values.status_code_mapping) ||
